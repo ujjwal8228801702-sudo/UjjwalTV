@@ -1,13 +1,13 @@
 package com.ujjwal.tv
 
+import android.app.Activity
 import android.os.Bundle
 import android.view.KeyEvent
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import androidx.appcompat.app.AppCompatActivity
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : Activity() {
     private lateinit var webView: WebView
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -29,6 +29,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onBackPressed() {
-        webView.dispatchKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ESCAPE))
+        if (webView.canGoBack()) {
+            webView.goBack()
+        } else {
+            webView.dispatchKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ESCAPE))
+        }
     }
 }
