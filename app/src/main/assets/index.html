@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ujjwal TV</title>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
+    body { background: #090d16; color: #f8fafc; display: flex; height: 100vh; overflow: hidden; }
+    
+    #sidebar { width: 350px; background: #0f172a; border-right: 1px solid #1e293b; display: flex; flex-direction: column; }
+    .brand { padding: 14px 16px; background: #020617; font-size: 20px; font-weight: bold; color: #38bdf8; letter-spacing: 1px; border-bottom: 1px solid #1e293b; }
+    .top-controls { padding: 12px; background: #1e293b; display: flex; flex-direction: column; gap: 8px; }
+    .btn-row { display: flex; gap: 8px; }
+    .btn-row button { flex: 1; }
+    input, select, button {
+      background: #0f172a; color: #fff; border: 2px solid #334155;
+      padding: 9px; border-radius: 6px; font-size: 14px;
+    }
+    input:focus, select:focus, button:focus, .channel:focus {
+      outline: none; border-color: #38bdf8; background: #1e3a8a;
+    }
+    #channel-list { flex: 1; overflow-y: auto; padding: 10px; }
+    .channel {
+      display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px;
+      border-radius: 8px; cursor: pointer; margin-bottom: 6px; border: 2px solid transparent;
+    }
+    .ch-left { display: flex; align-items: center; gap: 12px; overflow: hidden; }
+    .channel img { width: 40px; height: 40px; object-fit: contain; background: #fff; border-radius: 6px; padding: 2px; flex-shrink: 0; }
+    .channel.active { background: #1d4ed8; }
+    .ch-title { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ch-group { font-size: 12px; color: #94a3b8; }
+    .fav-star { font-size: 18px; color: #facc15; }
+
+    #player-area { flex: 1; position: relative; background: #000; display: flex; align-items: center; justify-content: center; }
+    video { width: 100%; height: 100%; object-fit: contain; }
+    #osd-banner {
+      position: absolute; bottom: 30px; left: 30px; background: rgba(15, 23, 42, 0.88);
+      padding: 14px 22px; border-radius: 10px; border-left: 5px solid #38bdf8;
+      font-size: 20px; font-weight: bold; display: none;
+    }
+    #num-osd {
+      position: absolute; top: 30px; right: 40px; background: rgba(15, 23, 42, 0.9);
+      padding: 12px 24px; border-radius: 10px; border: 2px solid #38bdf8;
+      font-size: 28px; font-weight: bold; color: #38bdf8; display: none;
+    }
+    body.fullscreen-mode #sidebar { display: none; }
+  </style>
+</head>
+<body>
+
+  <div id="sidebar">
+    <div class="brand">📺 UJJWAL TV</div>
+    <div class="top-controls">
+      <input type="text" id="m3u-url" placeholder="M3U लिंक पेस्ट करें..." />
+      <div class="btn-row">
+        <button id="load-btn" onclick="loadM3U()">लोड करें</button>
+        <button id="fav-toggle-btn" onclick="toggleFavFilter()">⭐ फेवरेट</button>
+      </div>
+      <select id="category-filter" onchange="renderChannels()">
+        <option value="ALL">सभी कैटेगरी (All)</option>
+      </select>
+    </div>
+    <div id="channel-list"></div>
+  </div>
+
+  <div id="player-area">
+    <video id="video" autoplay playsinline></video>
+    <div id="osd-banner">Ujjwal TV लोड हो रहा है...</div>
+    <div id="num-osd"></div>
+  </div>
+
+  <script>
+    const video = document.getElementById('video');
+    const channelListEl = document.getElementById('channel-list');
+    const categoryEl = document.getElementById('category-filter');
+    const urlInput = document.getElementById('m3u-url');
+    const osd = document.getElementById('osd-banner');
+    const numOsd = document.getElementById('num-osd');
+    const favBtn = document.getElementById('fav-toggle-btn');
+
+    let allChannels = [];
+    let filteredChannels = [];
+    let favorites = JSON.parse(localStorage.getItem('ujjwal_tv_favs') || '[]');
+    let showOnlyFavs = false;
+    let currentIndex = 0;
+    let hls = null;
+    let osdTimer = null;
+    let numBuffer = '';
+    let numTimer = null;
+
+    urlInput.value = localStorage.getItem('saved_m3u') || 'https://iptv-org.github.io/iptv/countries/in.m3u';
+
+    function showOSD(text) {
+      osd.innerText = text;
+      osd.style.display = 'block';
+      clearTimeout(osdTimer);
+      osdTimer = setTimeout(() => { osd.style.display = 'none'; }, 3500);
+    }
+
+    function toggleFavFilter() {
+      showOnlyFavs = !showOnlyFavs;
+      favBtn.style.background = showOnlyFavs ? '#1d4ed8' : '#0f172a';
+      renderChannels();
+    }
+
+    function toggleFavorite(url) {
+      if (favorites.includes(url)) {
+        favorites = favorites.filter(f => f !== url);
+        showOSD('फेवरेट से हटाया गया');
+      } else {
+        favorites.push(url);
+        showOSD('⭐ फेवरेट में सेव किया गया');
+      }
+      localStorage.setItem('ujjwal_tv_favs', JSON.stringify(favorites));
+      renderChannels();
+    }
+
+    async function loadM3U() {
+      const url = urlInput.value.trim();
+      if (!url) return;
+      localStorage.setItem('saved_m3u', url);
+      showOSD('प्लेलिस्ट लोड हो रही है...');
+      try {
+        const res = await fetch(url);
+        const text = await res.text();
+        parseM3U(text);
+      } catch (err) {
+        showOSD('लिंक लोड नहीं हो सका (नेटवर्क या लिंक जांचें)');
+      }
+    }
+
+    function parseM3U(data) {
+      const lines = data.split('\n');
+      allChannels = [];
+      const categories = new Set();
+      let current = {};
+
+      for (let line of lines) {
+        line = line.trim();
+        if (line.startsWith('#EXTINF:')) {
+          const nameMatch = line.split(',').pop();
+          const logoMatch = line.match(/tvg-logo="([^"]*)"/);
+          const groupMatch = line.match(/group-title="([^"]*)"/);
+          current = {
+            name: nameMatch || 'Unknown Channel',
+            logo: logoMatch ? logoMatch[1] : '',
+            group: groupMatch ? groupMatch[1] : 'General'
+          };
+          categories.add(current.group);
+        } else if (line.startsWith('http')) {
+          current.url = line;
+          allChannels.push(current);
+          current = {};
+        }
+      }
+
+      categoryEl.innerHTML = '<option value="ALL">सभी कैटेगरी (All)</option>';
+      categories.forEach(cat => {
+        const opt = document.createElement('option');
+        opt.value = cat; opt.innerText = cat;
+        categoryEl.appendChild(opt);
+      });
+
+      renderChannels();
+      if (filteredChannels.length > 0) playChannel(0);
+    }
+
+    function renderChannels() {
+      const selectedCat = categoryEl.value;
+      filteredChannels = allChannels.filter(c => {
+        const catMatch = selectedCat === 'ALL' || c.group === selectedCat;
+        const favMatch = !showOnlyFavs || favorites.includes(c.url);
+        return catMatch && favMatch;
+      });
+
+      channelListEl.innerHTML = '';
+      filteredChannels.forEach((ch, idx) => {
+        const isFav = favorites.includes(ch.url);
+        const div = document.createElement('div');
+        div.className = 'channel' + (idx === currentIndex ? ' active' : '');
+        div.tabIndex = 0;
+        div.dataset.index = idx;
+        div.innerHTML = `
+          <div class="ch-left">
+            <img src="${ch.logo || 'https://via.placeholder.com/40?text=TV'}" onerror="this.src='https://via.placeholder.com/40?text=TV'"/>
+            <div>
+              <div class="ch-title">${idx + 1}. ${ch.name}</div>
+              <div class="ch-group">${ch.group}</div>
+            </div>
+          </div>
+          <div class="fav-star">${isFav ? '⭐' : ''}</div>
+        `;
+        div.onclick = () => playChannel(idx);
+        channelListEl.appendChild(div);
+      });
+    }
+
+    function playChannel(idx) {
+      if (!filteredChannels[idx]) return;
+      currentIndex = idx;
+      const ch = filteredChannels[idx];
+      showOSD(`${idx + 1}. ${ch.name}`);
+
+      document.querySelectorAll('.channel').forEach((el, i) => {
+        el.classList.toggle('active', i === idx);
+      });
+
+      if (hls) { hls.destroy(); }
+      if (Hls.isSupported() && ch.url.includes('.m3u8')) {
+        hls = new Hls();
+        hls.loadSource(ch.url);
+        hls.attachMedia(video);
+      } else {
+        video.src = ch.url;
+      }
+      video.play().catch(() => {});
+    }
+
+    document.addEventListener('keydown', (e) => {
+      // रिमोट के 0-9 नंबर बटन से सीधा चैनल नंबर टाइप करना
+      if (e.key >= '0' && e.key <= '9' && document.activeElement !== urlInput) {
+        numBuffer += e.key;
+        numOsd.innerText = numBuffer;
+        numOsd.style.display = 'block';
+        clearTimeout(numTimer);
+        numTimer = setTimeout(() => {
+          const targetIdx = parseInt(numBuffer) - 1;
+          numBuffer = '';
+          numOsd.style.display = 'none';
+          if (targetIdx >= 0 && targetIdx < filteredChannels.length) {
+            playChannel(targetIdx);
+          }
+        }, 1200);
+        return;
+      }
+
+      const items = document.querySelectorAll('.channel');
+      const isFull = document.body.classList.contains('fullscreen-mode');
+
+      if (isFull) {
+        if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          playChannel((currentIndex - 1 + filteredChannels.length) % filteredChannels.length);
+        } else if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          playChannel((currentIndex + 1) % filteredChannels.length);
+        } else if (e.key === 'Enter' || e.keyCode === 23 || e.key === 'Backspace' || e.key === 'Escape') {
+          e.preventDefault();
+          document.body.classList.remove('fullscreen-mode');
+          if (items[currentIndex]) items[currentIndex].focus();
+        }
+        return;
+      }
+
+      if (document.activeElement && document.activeElement.classList.contains('channel')) {
+        let focusIdx = parseInt(document.activeElement.dataset.index);
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          const next = (focusIdx + 1) % items.length;
+          items[next].focus();
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          if (focusIdx === 0) {
+            categoryEl.focus();
+          } else {
+            items[focusIdx - 1].focus();
+          }
+        } else if (e.key === 'ArrowLeft') {
+          // Left बटन दबाने से चैनल फेवरेट (⭐) में सेव या रिमूव होगा
+          e.preventDefault();
+          toggleFavorite(filteredChannels[focusIdx].url);
+          setTimeout(() => {
+            const updated = document.querySelectorAll('.channel');
+            if (updated[focusIdx]) updated[focusIdx].focus();
+          }, 50);
+        } else if (e.key === 'ArrowRight' || e.key === 'Enter' || e.keyCode === 23) {
+          e.preventDefault();
+          if (focusIdx !== currentIndex) {
+            playChannel(focusIdx);
+          } else {
+            document.body.classList.add('fullscreen-mode');
+            showOSD('फुल-स्क्रीन मोड (CH बदलें: Up/Down | वापस: Back)');
+          }
+        }
+      }
+    });
+
+    window.onload = () => {
+      loadM3U();
+      setTimeout(() => {
+        const first = document.querySelector('.channel');
+        if (first) first.focus();
+      }, 1500);
+    };
+  </script>
+</body>
+</html>
