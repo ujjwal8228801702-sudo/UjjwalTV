@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Ujjwal TV</title>
+  <title>HD-TV-App</title>
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
@@ -11,6 +11,17 @@
     
     #sidebar { width: 350px; background: #0f172a; border-right: 1px solid #1e293b; display: flex; flex-direction: column; }
     .brand { padding: 12px 16px; background: #020617; font-size: 18px; font-weight: bold; color: #38bdf8; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e293b; }
+    
+    .main-tabs { display:flex; gap:8px; padding:10px; background:#0b1220; border-bottom:1px solid #1e293b; }
+    .main-tabs button { flex:1; font-weight:700; }
+    .main-tabs button.selected { background:#0369a1; border-color:#38bdf8; }
+    #home-panel, #guide-panel { display:none; flex:1; overflow:auto; padding:14px; }
+    .panel-title { font-size:20px; font-weight:800; margin:4px 0 12px; color:#e0f2fe; }
+    .home-card { padding:16px; margin:8px 0; border:1px solid #334155; border-radius:12px; background:linear-gradient(135deg,#172554,#0f172a); cursor:pointer; }
+    .home-card strong { display:block; font-size:17px; margin-bottom:5px; }
+    .home-card small { color:#cbd5e1; }
+    .guide-row { display:flex; justify-content:space-between; gap:12px; padding:12px; border-bottom:1px solid #334155; }
+    .guide-row span { color:#94a3b8; font-size:12px; }
     .top-controls { padding: 10px; background: #1e293b; display: flex; flex-direction: column; gap: 8px; }
     .btn-row { display: flex; gap: 8px; }
     .btn-row button { flex: 1; }
@@ -64,7 +75,25 @@
 
   <div id="sidebar">
     <div class="brand">
-      <span>📺 UJJWAL TV</span>
+      <span>📺 HD-TV-APP</span>
+    </div>
+
+    <div class="main-tabs">
+      <button id="home-tab" class="selected" onclick="showTab('home')">⌂ Home</button>
+      <button id="live-tab" onclick="showTab('live')">▶ Live TV</button>
+      <button id="guide-tab" onclick="showTab('guide')">▤ Guide</button>
+    </div>
+    <div id="home-panel">
+      <div class="panel-title">Welcome to HD-TV-App</div>
+      <div class="home-card" onclick="showTab('live')"><strong>▶ Watch Live TV</strong><small>Open your saved playlist and browse channels</small></div>
+      <div class="home-card" onclick="showTab('guide')"><strong>▤ TV Guide</strong><small>View available channel information</small></div>
+      <div class="home-card" onclick="toggleFavFilter();showTab('live')"><strong>★ Favourites</strong><small>Quick access to your saved channels</small></div>
+      <div class="home-card"><strong>How to start</strong><small>Load an M3U playlist to view channels. Only streams provided by your playlist are available.</small></div>
+    </div>
+    <div id="guide-panel">
+      <div class="panel-title">TV Guide</div>
+      <p style="color:#94a3b8;margin-bottom:10px">Programme timings appear when your playlist includes EPG data. Basic channel list is shown otherwise.</p>
+      <div id="guide-list"></div>
     </div>
     <div class="top-controls">
       <input type="text" id="m3u-url" placeholder="M3U लिंक पेस्ट करें..." />
@@ -82,7 +111,7 @@
   <div id="player-area">
     <video id="video" controls autoplay playsinline></video>
     <button id="fs-btn" onclick="toggleFullscreen()">⛶ फुल स्क्रीन</button>
-    <div id="osd-banner">Ujjwal TV लोड हो रहा है...</div>
+    <div id="osd-banner">HD-TV-App लोड हो रहा है...</div>
     <div id="num-osd"></div>
   </div>
 
@@ -93,11 +122,34 @@
     const urlInput = document.getElementById('m3u-url');
     const osd = document.getElementById('osd-banner');
     const numOsd = document.getElementById('num-osd');
+
     const favBtn = document.getElementById('fav-toggle-btn');
+    function showTab(tab) {
+      ['home','live','guide'].forEach(name => {
+        document.getElementById(name+'-tab').classList.toggle('selected', name===tab);
+      });
+      document.getElementById('home-panel').style.display = tab==='home' ? 'block' : 'none';
+      document.getElementById('guide-panel').style.display = tab==='guide' ? 'block' : 'none';
+      document.getElementById('channel-list').style.display = tab==='live' ? 'block' : 'none';
+      document.querySelector('.top-controls').style.display = tab==='live' ? 'flex' : 'none';
+      if (tab==='live') setTimeout(()=>{ const first=document.querySelector('.channel'); if(first) first.focus(); },80);
+    }
+    function renderGuide() {
+      const guide=document.getElementById('guide-list');
+      guide.innerHTML='';
+      if (!allChannels.length) { guide.textContent='पहले Live TV playlist लोड करें।'; return; }
+      allChannels.slice(0,100).forEach(ch=>{
+        const row=document.createElement('div'); row.className='guide-row';
+        const name=document.createElement('strong'); name.textContent=ch.name;
+        const meta=document.createElement('span'); meta.textContent=ch.group+' · EPG timing playlist में उपलब्ध होने पर दिखेगी';
+        row.append(name,meta); row.onclick=()=>{showTab('live');const i=filteredChannels.findIndex(x=>x.url===ch.url);if(i>=0)playChannel(i);};
+        guide.appendChild(row);
+      });
+    }
 
     let allChannels = [];
     let filteredChannels = [];
-    let favorites = JSON.parse(localStorage.getItem('ujjwal_tv_favs') || '[]');
+    let favorites = JSON.parse(localStorage.getItem('hd_tv_app_favs') || '[]');
     let showOnlyFavs = false;
     let currentIndex = 0;
     let hls = null;
@@ -183,7 +235,9 @@
         categoryEl.appendChild(opt);
       });
 
+
       renderChannels();
+      renderGuide();
       if (filteredChannels.length > 0) playChannel(0);
     }
 
@@ -304,7 +358,9 @@
       }
     });
 
+
     window.onload = () => {
+      showTab('home');
       loadM3U();
       setTimeout(() => {
         const first = document.querySelector('.channel');
