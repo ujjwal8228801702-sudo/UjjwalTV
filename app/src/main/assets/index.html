@@ -423,6 +423,12 @@
       });
 
       if (hls) { hls.destroy(); }
+      // Android APK uses the bundled native Media3 player for HLS and smoother TV playback.
+      if (window.HDTVPlayer && typeof window.HDTVPlayer.play === 'function') {
+        video.pause();
+        window.HDTVPlayer.play(ch.url, ch.name);
+        return;
+      }
       if (Hls.isSupported() && ch.url.includes('.m3u8')) {
         hls = new Hls();
         hls.loadSource(ch.url);
