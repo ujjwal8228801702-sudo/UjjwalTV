@@ -6,71 +6,74 @@
   <title>HD-TV-App</title>
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
-    body { background: #090d16; color: #f8fafc; display: flex; height: 100vh; overflow: hidden; }
-    
-    #sidebar { width: 350px; background: #0f172a; border-right: 1px solid #1e293b; display: flex; flex-direction: column; }
-    .brand { padding: 12px 16px; background: #020617; font-size: 18px; font-weight: bold; color: #38bdf8; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e293b; }
-    
-    .main-tabs { display:flex; gap:8px; padding:10px; background:#0b1220; border-bottom:1px solid #1e293b; }
-    .main-tabs button { flex:1; font-weight:700; }
-    .main-tabs button.selected { background:#0369a1; border-color:#38bdf8; }
-    #home-panel, #guide-panel { display:none; flex:1; overflow:auto; padding:14px; }
-    .panel-title { font-size:20px; font-weight:800; margin:4px 0 12px; color:#e0f2fe; }
-    .remote-info {display:none;margin:10px 0;padding:16px;border:1px solid #0ea5e9;border-radius:12px;background:#082f49;line-height:1.7}
+    * { box-sizing:border-box; margin:0; padding:0; font-family:Inter,system-ui,Arial,sans-serif; }
+    :root { color-scheme:dark; --bg:#080d19; --panel:#101a2d; --line:#26364e; --muted:#9aabc2; --cyan:#42c8f5; }
+    body { background:var(--bg); color:#f8fafc; display:flex; height:100vh; overflow:hidden; }
+    #sidebar { width:390px; max-width:44vw; background:var(--bg); border-right:1px solid var(--line); display:flex; flex-direction:column; min-height:0; }
+    .brand { padding:16px 20px; background:linear-gradient(110deg,#101b31,#0a1222); font-size:21px; font-weight:850; color:#e8f6ff; display:flex; align-items:center; gap:10px; border-bottom:1px solid var(--line); letter-spacing:.2px; }
+    .brand:before { content:""; width:4px; height:25px; border-radius:8px; background:var(--cyan); }
+    .main-tabs { display:flex; gap:7px; padding:12px 14px; background:#0b1425; border-bottom:1px solid var(--line); }
+    .main-tabs button { flex:1; border:1px solid #263952; background:#121e32; color:#c8d5e7; font-weight:750; padding:12px 6px; border-radius:11px; font-size:14px; }
+    .main-tabs button.selected { background:linear-gradient(135deg,#087eb5,#075985); border-color:#42c8f5; color:white; box-shadow:0 4px 18px #0284c733; }
+    #home-panel, #guide-panel { display:none; flex:1; overflow:auto; padding:17px; }
+    .panel-title { font-size:21px; font-weight:850; margin:4px 0 13px; color:#f3f8ff; }
+    .home-hero { padding:19px; border:1px solid #245174; border-radius:17px; background:radial-gradient(circle at 90% 0%,#15577b 0,transparent 48%),linear-gradient(135deg,#142b49,#101a2d 70%); margin-bottom:18px; }
+    .home-hero .eyebrow { color:#80d9fb; font-size:11px; font-weight:800; letter-spacing:1.5px; text-transform:uppercase; }
+    .home-hero h2 { font-size:24px; line-height:1.2; margin:8px 0; }
+    .home-hero p { color:#b7c8dc; font-size:13px; line-height:1.5; }
+    .section-heading { display:flex; align-items:center; justify-content:space-between; margin:17px 2px 10px; font-weight:800; font-size:16px; }
+    .section-heading small { color:var(--muted); font-weight:500; font-size:11px; }
+    .home-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+    .home-card { min-height:92px; padding:14px; border:1px solid #2b3d56; border-radius:14px; background:linear-gradient(145deg,#172943,#101a2d); cursor:pointer; text-align:left; }
+    .home-card .home-icon { font-size:23px; display:block; margin-bottom:8px; }
+    .home-card strong { display:block; font-size:14px; margin-bottom:4px; }
+    .home-card small { color:#a9bad0; font-size:11px; line-height:1.4; }
+    .category-tiles { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; }
+    .category-tile { padding:13px; border-radius:12px; background:#111e32; border:1px solid #2b3d56; color:#e8f3ff; font-weight:750; text-align:left; }
+    .remote-info {display:none;margin:12px 0;padding:16px;border:1px solid #0ea5e9;border-radius:14px;background:#082f49;line-height:1.7}
     .remote-info strong {color:#7dd3fc;font-size:22px;letter-spacing:2px}
-    .home-card { padding:16px; margin:8px 0; border:1px solid #334155; border-radius:12px; background:linear-gradient(135deg,#172554,#0f172a); cursor:pointer; }
-    .home-card strong { display:block; font-size:17px; margin-bottom:5px; }
-    .home-card small { color:#cbd5e1; }
-    .guide-row { display:flex; justify-content:space-between; gap:12px; padding:12px; border-bottom:1px solid #334155; }
-    .guide-row span { color:#94a3b8; font-size:12px; }
-    .top-controls { padding: 10px; background: #1e293b; display: flex; flex-direction: column; gap: 8px; }
-    .btn-row { display: flex; gap: 8px; }
-    .btn-row button { flex: 1; }
-    input, select, button {
-      background: #0f172a; color: #fff; border: 2px solid #334155;
-      padding: 9px; border-radius: 6px; font-size: 14px;
+    .guide-row { display:flex; justify-content:space-between; gap:12px; padding:14px 10px; border-bottom:1px solid var(--line); }
+    .guide-row span { color:var(--muted); font-size:12px; }
+    .top-controls { padding:12px 14px; background:#0d1728; border-bottom:1px solid var(--line); display:flex; flex-direction:column; gap:9px; }
+    .playlist-settings { border:1px solid #2b3d56; border-radius:11px; background:#111e32; padding:10px 12px; }
+    .playlist-settings summary { color:#b8c9dd; font-size:13px; font-weight:700; cursor:pointer; }
+    .playlist-settings input { width:100%; margin:10px 0 8px; }
+    .btn-row { display:flex; gap:8px; }
+    .btn-row button { flex:1; }
+    input, select, button { background:#111e32; color:#fff; border:1px solid #30435d; padding:11px 12px; border-radius:10px; font-size:14px; }
+    input:focus, select:focus, button:focus, .channel:focus { outline:none; border-color:var(--cyan); box-shadow:0 0 0 2px #38bdf833; }
+    #search-channel { width:100%; background:#111e32; }
+    #category-filter { width:100%; }
+    #channel-list { flex:1; overflow-y:auto; padding:10px 12px 18px; }
+    .channel { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:12px; border-radius:13px; cursor:pointer; margin-bottom:7px; border:1px solid transparent; background:#101a2b; min-height:70px; }
+    .ch-left { display:flex; align-items:center; gap:12px; overflow:hidden; }
+    .channel img { width:46px; height:46px; object-fit:contain; background:#fff; border-radius:11px; padding:3px; flex-shrink:0; }
+    .channel.active { background:linear-gradient(100deg,#123e72,#164e83); border-color:#32b9ed; }
+    .ch-title { font-size:14px; font-weight:750; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .ch-group { font-size:12px; color:var(--muted); margin-top:4px; }
+    .fav-star { font-size:20px; color:#facc15; padding:5px; }
+    #player-area { flex:1; min-width:0; position:relative; background:#000; display:flex; align-items:center; justify-content:center; }
+    video { width:100%; height:100%; object-fit:contain; }
+    #fs-btn { position:absolute; bottom:14px; right:14px; background:rgba(13,26,45,.88); border:1px solid var(--cyan); color:#fff; padding:10px 15px; border-radius:10px; font-size:13px; z-index:10; }
+    #osd-banner { position:absolute; bottom:18px; left:18px; background:rgba(15,23,42,.9); padding:10px 14px; border-radius:10px; border-left:4px solid var(--cyan); font-size:14px; font-weight:750; display:none; }
+    #num-osd { position:absolute; top:18px; right:18px; background:rgba(15,23,42,.92); padding:10px 18px; border-radius:10px; border:1px solid var(--cyan); font-size:22px; font-weight:800; color:var(--cyan); display:none; }
+    @media (max-width:768px) {
+      body { flex-direction:column; }
+      #player-area { order:1; flex:none; width:100%; height:clamp(170px,25vh,270px); }
+      #sidebar { order:2; width:100%; max-width:none; flex:1; min-height:0; border-right:none; border-top:1px solid var(--line); }
+      .brand { padding:12px 16px; font-size:19px; }
+      .main-tabs { padding:9px 12px; }
+      .main-tabs button { padding:10px 5px; font-size:13px; }
+      #home-panel,#guide-panel { padding:14px; }
+      .top-controls { padding:10px 12px; }
+      #channel-list { padding:8px 10px 16px; }
+      body.fullscreen-mode #player-area { height:100vh; }
     }
-    input:focus, select:focus, button:focus, .channel:focus {
-      outline: none; border-color: #38bdf8; background: #1e3a8a;
+    @media (min-width:769px) {
+      #player-area { order:2; }
+      #sidebar { order:1; }
     }
-    #channel-list { flex: 1; overflow-y: auto; padding: 10px; }
-    .channel {
-      display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px;
-      border-radius: 8px; cursor: pointer; margin-bottom: 6px; border: 2px solid transparent;
-    }
-    .ch-left { display: flex; align-items: center; gap: 12px; overflow: hidden; }
-    .channel img { width: 38px; height: 38px; object-fit: contain; background: #fff; border-radius: 6px; padding: 2px; flex-shrink: 0; }
-    .channel.active { background: #1d4ed8; }
-    .ch-title { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .ch-group { font-size: 12px; color: #94a3b8; }
-    .fav-star { font-size: 18px; color: #facc15; padding: 4px; }
-
-    #player-area { flex: 1; position: relative; background: #000; display: flex; align-items: center; justify-content: center; }
-    video { width: 100%; height: 100%; object-fit: contain; }
-    #fs-btn {
-      position: absolute; bottom: 15px; right: 15px; background: rgba(15, 23, 42, 0.85);
-      border: 1px solid #38bdf8; color: #fff; padding: 8px 14px; border-radius: 6px; font-size: 14px; z-index: 10;
-    }
-    #osd-banner {
-      position: absolute; bottom: 20px; left: 20px; background: rgba(15, 23, 42, 0.88);
-      padding: 10px 16px; border-radius: 8px; border-left: 4px solid #38bdf8;
-      font-size: 16px; font-weight: bold; display: none;
-    }
-    #num-osd {
-      position: absolute; top: 20px; right: 20px; background: rgba(15, 23, 42, 0.9);
-      padding: 10px 20px; border-radius: 8px; border: 2px solid #38bdf8;
-      font-size: 24px; font-weight: bold; color: #38bdf8; display: none;
-    }
-
-    /* मोबाइल की खड़ी स्क्रीन (Portrait) के लिए लेआउट */
-    @media (max-width: 768px) {
-      body { flex-direction: column; }
-      #player-area { order: 1; flex: none; width: 100%; height: 34vh; }
-      #sidebar { order: 2; width: 100%; flex: 1; border-right: none; border-top: 1px solid #1e293b; }
-      body.fullscreen-mode #player-area { height: 100vh; }
-    }
-    body.fullscreen-mode #sidebar { display: none; }
+    body.fullscreen-mode #sidebar { display:none; }
   </style>
 </head>
 <body>
@@ -86,11 +89,16 @@
       <button id="guide-tab" onclick="showTab('guide')">▤ Guide</button>
     </div>
     <div id="home-panel">
-      <div class="panel-title">Welcome to HD-TV-App</div>
-      <div class="home-card" onclick="showTab('live')"><strong>▶ Watch Live TV</strong><small>Open your saved playlist and browse channels</small></div>
-      <div class="home-card" onclick="showTab('guide')"><strong>▤ TV Guide</strong><small>View available channel information</small></div>
-      <div class="home-card" onclick="toggleFavFilter();showTab('live')"><strong>★ Favourites</strong><small>Quick access to your saved channels</small></div>
-      <div class="home-card" onclick="showRemoteInfo()"><strong>📱 Phone Remote</strong><small>मोबाइल को TV remote बनाएं — Wi-Fi और 4-digit PIN pairing</small></div>
+      <div class="home-hero"><div class="eyebrow">YOUR ENTERTAINMENT HUB</div><h2>Welcome to HD-TV-App</h2><p>Live channels, music, news and your favourites — all in one place.</p></div>
+      <div class="section-heading">Quick Access <small id="home-channel-count">Channels ready</small></div>
+      <div class="home-grid">
+        <button class="home-card" onclick="showTab('live')"><span class="home-icon">▶️</span><strong>Live TV</strong><small>Browse all available channels</small></button>
+        <button class="home-card" onclick="toggleFavFilter(true);showTab('live')"><span class="home-icon">⭐</span><strong>Favourites</strong><small>Your saved channels</small></button>
+        <button class="home-card" onclick="showTab('guide')"><span class="home-icon">▤</span><strong>TV Guide</strong><small>Channel guide and programme data</small></button>
+        <button class="home-card" onclick="showRemoteInfo()"><span class="home-icon">📱</span><strong>Phone Remote</strong><small>Pair your phone over Wi-Fi</small></button>
+      </div>
+      <div class="section-heading">Browse Categories <small>Explore</small></div>
+      <div id="home-categories" class="category-tiles"><button class="category-tile" onclick="showTab('live')">All Channels</button></div>
       <div id="remote-info" class="remote-info"><strong>PHONE REMOTE</strong><p id="remote-address">TV network जानकारी लोड हो रही है...</p><p>PIN: <strong id="remote-pin">----</strong></p><small>मोबाइल और TV एक ही Wi-Fi पर रखें। मोबाइल ब्राउज़र में ऊपर दिया address खोलें और PIN डालें।</small><button onclick="document.getElementById('remote-info').style.display='none'">Close</button></div>
       <div class="home-card"><strong>How to start</strong><small>Load an M3U playlist to view channels. Only streams provided by your playlist are available.</small></div>
     </div>
@@ -100,11 +108,16 @@
       <div id="guide-list"></div>
     </div>
     <div class="top-controls">
-      <input type="text" id="m3u-url" placeholder="M3U लिंक पेस्ट करें..." />
+      <input id="search-channel" type="search" placeholder="⌕ Search channels..." oninput="renderChannels()" />
       <div class="btn-row">
-        <button id="load-btn" onclick="loadM3U()">लोड करें</button>
-        <button id="fav-toggle-btn" onclick="toggleFavFilter()">⭐ फेवरेट</button>
+        <button id="fav-toggle-btn" onclick="toggleFavFilter()">☆ Favourites</button>
+        <button onclick="document.getElementById('playlist-settings').open=!document.getElementById('playlist-settings').open">⚙ Playlist</button>
       </div>
+      <details id="playlist-settings" class="playlist-settings">
+        <summary>Playlist Settings · M3U URL</summary>
+        <input type="text" id="m3u-url" placeholder="Paste M3U playlist link..." />
+        <button id="load-btn" onclick="loadM3U()">Load Playlist</button>
+      </details>
       <select id="category-filter" onchange="renderChannels()">
         <option value="ALL">सभी कैटेगरी (All)</option>
       </select>
@@ -149,6 +162,27 @@
       document.querySelector('.top-controls').style.display = tab==='live' ? 'flex' : 'none';
       if (tab==='live') setTimeout(()=>{ const first=document.querySelector('.channel'); if(first) first.focus(); },80);
     }
+    function renderHomeCategories() {
+      const wrap=document.getElementById('home-categories');
+      if(!wrap) return;
+      wrap.innerHTML='';
+      const cats=[...new Set(allChannels.map(ch=>ch.group).filter(Boolean))].slice(0,12);
+      if(!cats.length) cats.push('All Channels');
+      cats.forEach(cat=>{
+        const btn=document.createElement('button');
+        btn.className='category-tile';
+        btn.textContent='▣  '+cat;
+        btn.onclick=()=>{
+          const option=[...categoryEl.options].find(o=>o.value===cat);
+          categoryEl.value=option?cat:'ALL';
+          showOnlyFavs=false;
+          showTab('live');
+          renderChannels();
+        };
+        wrap.appendChild(btn);
+      });
+    }
+
     function renderGuide() {
       const guide=document.getElementById('guide-list');
       guide.innerHTML='';
@@ -185,8 +219,8 @@
       osdTimer = setTimeout(() => { osd.style.display = 'none'; }, 3000);
     }
 
-    function toggleFavFilter() {
-      showOnlyFavs = !showOnlyFavs;
+    function toggleFavFilter(force) {
+      showOnlyFavs = typeof force === 'boolean' ? force : !showOnlyFavs;
       favBtn.style.background = showOnlyFavs ? '#1d4ed8' : '#0f172a';
       renderChannels();
     }
@@ -253,15 +287,20 @@
 
       renderChannels();
       renderGuide();
+      renderHomeCategories();
+      const count=document.getElementById('home-channel-count');
+      if(count) count.textContent=allChannels.length+' channels';
       if (filteredChannels.length > 0) playChannel(0);
     }
 
     function renderChannels() {
       const selectedCat = categoryEl.value;
+      const query = (document.getElementById('search-channel')?.value || '').trim().toLowerCase();
       filteredChannels = allChannels.filter(c => {
         const catMatch = selectedCat === 'ALL' || c.group === selectedCat;
         const favMatch = !showOnlyFavs || favorites.includes(c.url);
-        return catMatch && favMatch;
+        const searchMatch = !query || (c.name+' '+c.group).toLowerCase().includes(query);
+        return catMatch && favMatch && searchMatch;
       });
 
       channelListEl.innerHTML = '';
