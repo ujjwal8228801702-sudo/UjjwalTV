@@ -13,5 +13,5 @@ Android TV live playlist player.
 ## Notes
 - Live channel availability depends on the playlist and the rights/availability of each stream.
 - The Guide lists channels. Actual programme schedules require EPG data in the playlist; timings are not fabricated.
-- Phone-as-remote over Wi-Fi with PIN pairing requires a local network control service and is not yet included in this build.
+- Phone remote over the same Wi-Fi: open Home → Phone Remote on TV, visit the shown `http://TV-IP:8765/remote` address on your phone, and enter the 4-digit TV PIN. Supports D-pad, OK, Back, Play/Pause and volume keys. Keep the TV app open while using the remote.
 - Samsung Tizen requires a separate Tizen package; this repository builds an Android APK.
