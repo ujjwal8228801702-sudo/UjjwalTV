@@ -32,6 +32,31 @@
     .category-tile { padding:13px; border-radius:12px; background:#111e32; border:1px solid #2b3d56; color:#e8f3ff; font-weight:750; text-align:left; }
     .remote-info {display:none;margin:12px 0;padding:16px;border:1px solid #0ea5e9;border-radius:14px;background:#082f49;line-height:1.7}
     .remote-info strong {color:#7dd3fc;font-size:22px;letter-spacing:2px}
+
+    #premium-panel { display:none; flex:1; overflow:auto; padding:16px; background:radial-gradient(ellipse at 80% 0%,#163a66 0,transparent 42%),var(--bg); }
+    .premium-hero { position:relative; overflow:hidden; padding:22px; border-radius:20px; border:1px solid #4b83b8; background:linear-gradient(125deg,#183b67,#101b32 65%,#172a4b); box-shadow:0 16px 36px #0005; margin-bottom:16px; }
+    .premium-hero:after { content:"✦"; position:absolute; right:18px; top:8px; font-size:88px; color:#9bdcff22; }
+    .premium-kicker { color:#8be0ff; font-size:11px; font-weight:900; letter-spacing:2px; }
+    .premium-hero h2 { font-size:25px; margin:9px 0 7px; letter-spacing:-.5px; }
+    .premium-hero p { max-width:300px; color:#c2d5ec; font-size:13px; line-height:1.55; }
+    .premium-chip { display:inline-flex; margin-top:14px; padding:7px 11px; border:1px solid #6bbde8; border-radius:30px; color:#c8efff; font-size:11px; font-weight:800; }
+    .premium-section { font-size:16px; font-weight:850; margin:18px 2px 10px; }
+    .premium-feature-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+    .premium-feature { min-height:95px; padding:14px; border:1px solid #2e4667; border-radius:15px; background:linear-gradient(145deg,#172943,#101a2d); }
+    .premium-feature b { display:block; font-size:14px; margin:7px 0 4px; }
+    .premium-feature small { color:#a9bad0; font-size:11px; line-height:1.4; }
+    .premium-settings { border:1px solid #2d4260; border-radius:15px; background:#101b2d; overflow:hidden; }
+    .premium-setting { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:14px; border-bottom:1px solid #26364e; }
+    .premium-setting:last-child { border-bottom:0; }
+    .premium-setting b { display:block; font-size:13px; }
+    .premium-setting small { display:block; color:#9aabc2; font-size:11px; margin-top:4px; }
+    .premium-setting input[type=checkbox] { width:21px; height:21px; accent-color:#38bdf8; }
+    .premium-setting select { min-width:118px; }
+    body.cinema-mode { --bg:#03060d; --panel:#090f1b; --line:#1a2b43; }
+    body.cinema-mode .channel { background:#0b1423; }
+    body.cinema-mode .channel.active { background:linear-gradient(100deg,#123d69,#075985); }
+    @media(max-width:768px){ #premium-panel{padding:13px}.premium-hero{padding:19px}.premium-hero h2{font-size:22px} }
+
     .guide-row { display:flex; justify-content:space-between; gap:12px; padding:14px 10px; border-bottom:1px solid var(--line); }
     .guide-row span { color:var(--muted); font-size:12px; }
     .top-controls { padding:12px 14px; background:#0d1728; border-bottom:1px solid var(--line); display:flex; flex-direction:column; gap:9px; }
@@ -90,6 +115,7 @@
       <button id="home-tab" class="selected" onclick="showTab('home')">⌂ Home</button>
       <button id="live-tab" onclick="showTab('live')">▶ Live TV</button>
       <button id="guide-tab" onclick="showTab('guide')">▤ Guide</button>
+      <button id="premium-tab" onclick="showTab('premium')">✦ Premium</button>
     </div>
     <div id="home-panel">
       <div class="home-hero"><div class="eyebrow">YOUR ENTERTAINMENT HUB</div><h2>Welcome to HD-TV-App</h2><p>Live channels, music, news and your favourites — all in one place.</p></div>
@@ -109,6 +135,28 @@
       <div class="panel-title">TV Guide</div>
       <p style="color:#94a3b8;margin-bottom:10px">Programme timings appear when your playlist includes EPG data. Basic channel list is shown otherwise.</p>
       <div id="guide-list"></div>
+    </div>
+    <div id="premium-panel">
+      <div class="premium-hero">
+        <div class="premium-kicker">HD-TV-APP EXPERIENCE</div>
+        <h2>Entertainment, upgraded.</h2>
+        <p>A cleaner TV experience with quick access, personal preferences and a cinema-style interface.</p>
+        <span class="premium-chip">✦ PREMIUM EXPERIENCE · INCLUDED</span>
+      </div>
+      <div class="premium-section">Premium Features</div>
+      <div class="premium-feature-grid">
+        <div class="premium-feature"><span>🎬</span><b>Cinema Mode</b><small>Deep dark theme for comfortable viewing.</small></div>
+        <div class="premium-feature"><span>⭐</span><b>My Favourites</b><small>Keep your preferred channels close.</small></div>
+        <div class="premium-feature"><span>📱</span><b>Phone Remote</b><small>Control TV using the same Wi-Fi.</small></div>
+        <div class="premium-feature"><span>📡</span><b>Smart Guide</b><small>Channel guide with available EPG data.</small></div>
+      </div>
+      <div class="premium-section">Personalise your TV</div>
+      <div class="premium-settings">
+        <label class="premium-setting"><span><b>Cinema Mode</b><small>Use a deeper, darker viewing theme</small></span><input id="cinema-toggle" type="checkbox" onchange="savePremiumSettings()"></label>
+        <label class="premium-setting"><span><b>Auto-load playlist</b><small>Load your saved channel list when app opens</small></span><input id="autoload-toggle" type="checkbox" onchange="savePremiumSettings()"></label>
+        <label class="premium-setting"><span><b>Start page</b><small>Choose the first page when app launches</small></span><select id="startup-page" onchange="savePremiumSettings()"><option value="home">Home</option><option value="live">Live TV</option><option value="guide">Guide</option></select></label>
+      </div>
+      <p style="color:#8396af;font-size:11px;line-height:1.5;margin:13px 3px">Premium Experience options are included at no extra charge. HD-TV-App does not sell channel subscriptions or provide paid streams.</p>
     </div>
     <div class="top-controls">
       <input id="search-channel" type="search" placeholder="⌕ Search channels..." oninput="renderChannels()" />
@@ -145,6 +193,27 @@
     const numOsd = document.getElementById('num-osd');
 
     const favBtn = document.getElementById('fav-toggle-btn');
+    function loadPremiumSettings() {
+      const cinema=localStorage.getItem('hdtv_cinema')==='true';
+      const autoload=localStorage.getItem('hdtv_autoload')!=='false';
+      const startup=localStorage.getItem('hdtv_startup')||'home';
+      document.getElementById('cinema-toggle').checked=cinema;
+      document.getElementById('autoload-toggle').checked=autoload;
+      document.getElementById('startup-page').value=startup;
+      document.body.classList.toggle('cinema-mode',cinema);
+      return {autoload,startup};
+    }
+    function savePremiumSettings() {
+      const cinema=document.getElementById('cinema-toggle').checked;
+      const autoload=document.getElementById('autoload-toggle').checked;
+      const startup=document.getElementById('startup-page').value;
+      localStorage.setItem('hdtv_cinema',String(cinema));
+      localStorage.setItem('hdtv_autoload',String(autoload));
+      localStorage.setItem('hdtv_startup',startup);
+      document.body.classList.toggle('cinema-mode',cinema);
+      showOSD('Preferences saved');
+    }
+
     function showRemoteInfo() {
       const panel=document.getElementById('remote-info');
       panel.style.display='block';
@@ -158,11 +227,12 @@
     }
     function showTab(tab) {
       document.body.classList.remove('player-open','fullscreen-mode');
-      ['home','live','guide'].forEach(name => {
+      ['home','live','guide','premium'].forEach(name => {
         document.getElementById(name+'-tab').classList.toggle('selected', name===tab);
       });
       document.getElementById('home-panel').style.display = tab==='home' ? 'block' : 'none';
       document.getElementById('guide-panel').style.display = tab==='guide' ? 'block' : 'none';
+      document.getElementById('premium-panel').style.display = tab==='premium' ? 'block' : 'none';
       document.getElementById('channel-list').style.display = tab==='live' ? 'block' : 'none';
       document.querySelector('.top-controls').style.display = tab==='live' ? 'flex' : 'none';
       if (tab==='live') setTimeout(()=>{ const first=document.querySelector('.channel'); if(first) first.focus(); },80);
@@ -431,10 +501,10 @@
 
 
     window.onload = () => {
-      showTab('home');
-      // Load channel names in the background, but keep Home as the first screen.
-      // Playback starts only after the user selects a channel from Live TV.
-      loadM3U();
+      const prefs=loadPremiumSettings();
+      showTab(prefs.startup);
+      // Load channel names in the background only when the user enables auto-load.
+      if (prefs.autoload) loadM3U();
     };
   </script>
 </body>
