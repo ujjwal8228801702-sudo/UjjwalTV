@@ -17,6 +17,8 @@
     .main-tabs button.selected { background:#0369a1; border-color:#38bdf8; }
     #home-panel, #guide-panel { display:none; flex:1; overflow:auto; padding:14px; }
     .panel-title { font-size:20px; font-weight:800; margin:4px 0 12px; color:#e0f2fe; }
+    .remote-info {display:none;margin:10px 0;padding:16px;border:1px solid #0ea5e9;border-radius:12px;background:#082f49;line-height:1.7}
+    .remote-info strong {color:#7dd3fc;font-size:22px;letter-spacing:2px}
     .home-card { padding:16px; margin:8px 0; border:1px solid #334155; border-radius:12px; background:linear-gradient(135deg,#172554,#0f172a); cursor:pointer; }
     .home-card strong { display:block; font-size:17px; margin-bottom:5px; }
     .home-card small { color:#cbd5e1; }
@@ -88,6 +90,8 @@
       <div class="home-card" onclick="showTab('live')"><strong>▶ Watch Live TV</strong><small>Open your saved playlist and browse channels</small></div>
       <div class="home-card" onclick="showTab('guide')"><strong>▤ TV Guide</strong><small>View available channel information</small></div>
       <div class="home-card" onclick="toggleFavFilter();showTab('live')"><strong>★ Favourites</strong><small>Quick access to your saved channels</small></div>
+      <div class="home-card" onclick="showRemoteInfo()"><strong>📱 Phone Remote</strong><small>मोबाइल को TV remote बनाएं — Wi-Fi और 4-digit PIN pairing</small></div>
+      <div id="remote-info" class="remote-info"><strong>PHONE REMOTE</strong><p id="remote-address">TV network जानकारी लोड हो रही है...</p><p>PIN: <strong id="remote-pin">----</strong></p><small>मोबाइल और TV एक ही Wi-Fi पर रखें। मोबाइल ब्राउज़र में ऊपर दिया address खोलें और PIN डालें।</small><button onclick="document.getElementById('remote-info').style.display='none'">Close</button></div>
       <div class="home-card"><strong>How to start</strong><small>Load an M3U playlist to view channels. Only streams provided by your playlist are available.</small></div>
     </div>
     <div id="guide-panel">
@@ -124,6 +128,17 @@
     const numOsd = document.getElementById('num-osd');
 
     const favBtn = document.getElementById('fav-toggle-btn');
+    function showRemoteInfo() {
+      const panel=document.getElementById('remote-info');
+      panel.style.display='block';
+      try {
+        const details=window.HDTVRemote.details().split('|');
+        document.getElementById('remote-address').textContent='Open on phone: http://'+details[0]+'/remote';
+        document.getElementById('remote-pin').textContent=details[1] || '----';
+      } catch(e) {
+        document.getElementById('remote-address').textContent='Remote जानकारी उपलब्ध नहीं है।';
+      }
+    }
     function showTab(tab) {
       ['home','live','guide'].forEach(name => {
         document.getElementById(name+'-tab').classList.toggle('selected', name===tab);
@@ -185,7 +200,7 @@
         favorites.push(url);
         showOSD('⭐ फेवरेट में सेव किया गया');
       }
-      localStorage.setItem('ujjwal_tv_favs', JSON.stringify(favorites));
+      localStorage.setItem('hd_tv_app_favs', JSON.stringify(favorites));
       renderChannels();
     }
 
