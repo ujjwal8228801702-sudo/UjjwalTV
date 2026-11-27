@@ -3,6 +3,13 @@ package com.ujjwal.tv
 import android.app.Activity
 import android.os.Bundle
 import android.view.KeyEvent
+import android.view.View
+import android.view.ViewGroup
+import android.widget.FrameLayout
+import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.PlayerView
 import android.webkit.JavascriptInterface
 import android.webkit.WebSettings
 import android.webkit.WebView
@@ -18,6 +25,9 @@ import kotlin.concurrent.thread
 
 class MainActivity : Activity() {
     private lateinit var webView: WebView
+    private lateinit var rootLayout: FrameLayout
+    private lateinit var playerView: PlayerView
+    private var exoPlayer: ExoPlayer? = null
     private var remoteServer: ServerSocket? = null
     private val remotePort = 8765
     private val pin: String by lazy { (1000..9999).random().toString() }
@@ -26,8 +36,24 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         setTheme(R.style.AppTheme)
         super.onCreate(savedInstanceState)
+        rootLayout = FrameLayout(this)
         webView = WebView(this)
-        setContentView(webView)
+        playerView = PlayerView(this).apply {
+            visibility = View.GONE
+            useController = true
+            isFocusable = true
+            isFocusableInTouchMode = true
+            layoutParams = FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+        }
+        rootLayout.addView(webView, FrameLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.MATCH_PARENT
+        ))
+        rootLayout.addView(playerView)
+        setContentView(rootLayout)
 
         webView.settings.apply {
             javaScriptEnabled = true
@@ -37,10 +63,39 @@ class MainActivity : Activity() {
             allowUniversalAccessFromFileURLs = true
         }
         webView.addJavascriptInterface(RemoteBridge(), "HDTVRemote")
+        webView.addJavascriptInterface(NativePlayerBridge(), "HDTVPlayer")
         webView.webViewClient = WebViewClient()
         webView.loadUrl("file:///android_asset/index.html")
         webView.requestFocus()
         startRemoteServer()
+    }
+
+    inner class NativePlayerBridge {
+        @JavascriptInterface
+        fun play(url: String, title: String) {
+            if (!url.startsWith("https://") && !url.startsWith("http://")) return
+            runOnUiThread {
+                try {
+                    val player = exoPlayer ?: ExoPlayer.Builder(this@MainActivity).build().also {
+                        exoPlayer = it
+                        playerView.player = it
+                    }
+                    val item = MediaItem.Builder()
+                        .setUri(url)
+                        .setMediaMetadata(MediaMetadata.Builder().setTitle(title).build())
+                        .build()
+                    webView.visibility = View.GONE
+                    playerView.visibility = View.VISIBLE
+                    playerView.requestFocus()
+                    player.setMediaItem(item)
+                    player.prepare()
+                    player.playWhenReady = true
+                } catch (_: Exception) {
+                    playerView.visibility = View.GONE
+                    webView.visibility = View.VISIBLE
+                }
+            }
+        }
     }
 
     inner class RemoteBridge {
@@ -134,9 +189,14 @@ class MainActivity : Activity() {
                                 else -> -1
                             }
                             if (key >= 0) runOnUiThread {
-                                val now = android.os.SystemClock.uptimeMillis()
-                                webView.dispatchKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_DOWN, key, 0))
-                                webView.dispatchKeyEvent(KeyEvent(now, android.os.SystemClock.uptimeMillis(), KeyEvent.ACTION_UP, key, 0))
+                                if (key == KeyEvent.KEYCODE_BACK && playerView.visibility == View.VISIBLE) {
+                                    onBackPressed()
+                                } else {
+                                    val target = if (playerView.visibility == View.VISIBLE) playerView else webView
+                                    val now = android.os.SystemClock.uptimeMillis()
+                                    target.dispatchKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_DOWN, key, 0))
+                                    target.dispatchKeyEvent(KeyEvent(now, android.os.SystemClock.uptimeMillis(), KeyEvent.ACTION_UP, key, 0))
+                                }
                             }
                             respond(client.getOutputStream(), 200, "text/plain", "OK")
                         } else respond(client.getOutputStream(), 403, "text/plain", "पहले PIN से pair करें")
@@ -161,11 +221,22 @@ class MainActivity : Activity() {
 
     override fun onDestroy() {
         try { remoteServer?.close() } catch (_: Exception) {}
+        exoPlayer?.release()
+        exoPlayer = null
         super.onDestroy()
     }
 
     override fun onBackPressed() {
-        if (webView.canGoBack()) webView.goBack() else
+        if (::playerView.isInitialized && playerView.visibility == View.VISIBLE) {
+            exoPlayer?.pause()
+            playerView.visibility = View.GONE
+            webView.visibility = View.VISIBLE
+            webView.evaluateJavascript("closePlayer()", null)
+            webView.requestFocus()
+        } else if (webView.canGoBack()) {
+            webView.goBack()
+        } else {
             webView.dispatchKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ESCAPE))
+        }
     }
 }
