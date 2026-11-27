@@ -24,6 +24,7 @@ class MainActivity : Activity() {
     @Volatile private var pairedToken: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        setTheme(R.style.AppTheme)
         super.onCreate(savedInstanceState)
         webView = WebView(this)
         setContentView(webView)

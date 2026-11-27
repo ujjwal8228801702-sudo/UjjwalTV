@@ -1,0 +1,6 @@
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="#070D25" />
+    <item android:gravity="center">
+        <bitmap android:src="@drawable/app_icon" android:gravity="center" />
+    </item>
+</layer-list>
